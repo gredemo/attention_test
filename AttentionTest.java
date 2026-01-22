@@ -69,14 +69,15 @@ public class AttentionTest extends JPanel implements ActionListener {
             backgroundHue += 0.0002f; 
         }
 
-        // 2. "Inkräktaren" - BÖRJAR EFTER 5 SEKUNDER, MINDRE OCH LÅNGSAMMARE
-        if (frameCount > 300) { // Ca 5 sekunder (300 frames vid 60fps)
-            g2d.setColor(new Color(150, 150, 150, 20)); // Ännu lägre opacitet (20 istället för 30)
-            g2d.fillRect(intruderX, 250, 60, 60); // Mindre: 60x60 istället för 80x80
-            if (intruderX < getWidth() + 100) {
-                intruderX += 0.5; // LÅNGSAMMARE: 0.5 istället för 1 pixel per frame
-            }
-        }
+        // 2. "Inkräktaren" - BÖRJAR EFTER 5 SEKUNDER
+if (frameCount > 300) { // Ca 5 sekunder (300 frames vid 60fps)
+    g2d.setColor(new Color(150, 150, 150, 20));
+    g2d.fillRect(intruderX, 250, 60, 60);
+    if (intruderX < getWidth() + 100) {
+        intruderX += 0.5;
+    }
+}
+        
 
         // 3. Rita alla bollar
         for (Ball b : balls) {
@@ -116,8 +117,8 @@ public class AttentionTest extends JPanel implements ActionListener {
     
     // VISA INSTRUKTIONER EFTER ATT FÖNSTRET ÄR SYNLIGT
     JOptionPane.showMessageDialog(frame, 
-        "UPPGIFT: Klicka på knappen längst ner varje gång\n" +
-        "den GRÖNA bollen studsar mot en vägg.\n\n" +
+        "UPPGIFT: Klicka på den gröna knappen längst ner\n" +
+        "varje gång den GRÖNA bollen studsar mot en vägg.\n\n" +
         "Håll fokus, testet tar ca 15 sekunder.\n\n" +
         "Tryck OK för att börja!");
     
