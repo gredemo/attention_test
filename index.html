@@ -79,7 +79,7 @@
                 this.dx *= -1;
                 if (this.isTarget) greenBounces++;
             }
-            if (this.y - this.radius <= 0 || this.y + this.radius >= canvas.height - 100) {
+            if (this.y - this.radius <= 0 || this.y + this.radius >= canvas.height) {
                 this.dy *= -1;
                 if (this.isTarget) greenBounces++;
             }
@@ -145,17 +145,23 @@
     }
 
     function finishTest() {
-        testActive = false;
-        clickButton.disabled = true;
-        clickButton.style.opacity = 0.5;
-        
-        let diff = Math.abs(greenBounces - userClicks);
-        let accuracy = diff === 0 ? "Perfekt!" : 
-                      diff <= 2 ? "Mycket bra!" : 
-                      diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
-        
-        alert(`Testet klart!\n\nFaktiska gröna studsar: ${greenBounces}\nDina klick: ${userClicks}\nDifferens: ${diff} (${accuracy})\n\nMEN: Märkte du att...\n1. Bakgrunden ändrade färg från blå till rosa?\n2. En grå fyrkant gled långsamt genom mitten av skärmen?\n3. De vita bollarna förvandlades gradvis till kvadrater?`);
-    }
+    testActive = false;
+    clickButton.disabled = true;
+    clickButton.style.opacity = 0.5;
+    
+    let diff = Math.abs(greenBounces - userClicks);
+    let accuracy = diff === 0 ? "Perfekt!" : 
+                  diff <= 2 ? "Mycket bra!" : 
+                  diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+    
+    alert(`Testet klart!\n\nFaktiska gröna studsar: ${greenBounces}\nDina klick: ${userClicks}\nDifferens: ${diff} (${accuracy})\n\nMEN: Märkte du att...\n1. Bakgrunden ändrade färg från blå till rosa?\n2. En grå fyrkant gled långsamt genom mitten av skärmen?\n3. De vita bollarna förvandlades gradvis till kvadrater?`);
+    
+    // Lägg till omstart-knapp
+    clickButton.textContent = "TESTA IGEN";
+    clickButton.disabled = false;
+    clickButton.style.opacity = 1;
+    clickButton.onclick = () => location.reload();
+}
 
     function animate() {
         if (!testActive) return;
