@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Uppmärksamhetstest</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        #gameCanvas { 
+            border: 2px solid #333; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            display: block;
+        }
+        #clickButton {
+            margin-top: 20px;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgb(100, 200, 100);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        #clickButton:hover {
+            background: rgb(80, 180, 80);
+        }
+        #clickButton:active {
+            background: green;
+        }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<button id="clickButton">KLICKA HÄR VID GRÖN STUDS!</button>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const clickButton = document.getElementById('clickButton');
+    
+    canvas.width = 800;
+    canvas.height = 600;
+    
+    let ballCount = 7; // 1 grön + 6 vita
+    let greenBounces = 0;
+    let userClicks = 0;
+    let backgroundHue = 210; // Startar på blått
+    let intruderX = -100;
+    let frameCount = 0;
+    let balls = [];
+    let testActive = false;
+
+    class Ball {
+        constructor(x, y, dx, dy, color, isTarget) {
+            this.x = x; 
+            this.y = y; 
+            this.dx = dx; 
+            this.dy = dy;
+            this.color = color; 
+            this.isTarget = isTarget;
+            this.radius = 15;
+        }
+        
+        update() {
+            this.x += this.dx;
+            this.y += this.dy;
+            
+            // Studsa mot väggar
+            if (this.x - this.radius <= 0 || this.x + this.radius >= canvas.width) {
+                this.dx *= -1;
+                if (this.isTarget) greenBounces++;
+            }
+            if (this.y - this.radius <= 0 || this.y + this.radius >= canvas.height - 100) {
+                this.dy *= -1;
+                if (this.isTarget) greenBounces++;
+            }
+        }
+        
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            
+            if (this.isTarget) {
+                // Grön boll - alltid cirkel
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            } else {
+                // Vita bollar - blir gradvis fyrkantiga (Change Blindness)
+                let progress = Math.min(1, (backgroundHue - 210) / 90);
+                
+                if (progress < 0.3) {
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                } else {
+                    let size = this.radius * 2;
+                    let cornerRadius = this.radius * (1 - progress);
+                    this.roundRect(this.x - this.radius, this.y - this.radius, size, size, cornerRadius);
+                }
+            }
+            ctx.fill();
+        }
+        
+        roundRect(x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+    }
+
+    function init() {
+        // Skapa bollar - 1 grön + 6 vita
+        balls.push(new Ball(100, 100, 3, 4, 'green', true));
+        
+        for (let i = 0; i < ballCount - 1; i++) {
+            balls.push(new Ball(
+                Math.random() * 500 + 100, 
+                Math.random() * 400 + 50, 
+                Math.random() * 5 + 2, 
+                Math.random() * 5 + 2, 
+                'white', 
+                false
+            ));
+        }
+        
+        alert("UPPGIFT: Klicka på den gröna knappen längst ner\nvarje gång den GRÖNA bollen studsar mot en vägg.\n\nTestet tar 15 sekunder.\n\nTryck OK för att börja!");
+        
+        testActive = true;
+        setTimeout(finishTest, 15000);
+        animate();
+    }
+
+    function finishTest() {
+        testActive = false;
+        clickButton.disabled = true;
+        clickButton.style.opacity = 0.5;
+        
+        let diff = Math.abs(greenBounces - userClicks);
+        let accuracy = diff === 0 ? "Perfekt!" : 
+                      diff <= 2 ? "Mycket bra!" : 
+                      diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+        
+        alert(`Testet klart!\n\nFaktiska gröna studsar: ${greenBounces}\nDina klick: ${userClicks}\nDifferens: ${diff} (${accuracy})\n\nMEN: Märkte du att...\n1. Bakgrunden ändrade färg från blå till rosa?\n2. En grå fyrkant gled långsamt genom mitten av skärmen?\n3. De vita bollarna förvandlades gradvis till kvadrater?`);
+    }
+
+    function animate() {
+        if (!testActive) return;
+        
+        frameCount++;
+        
+        // 1. Bakgrund (Change Blindness - från blå till rosa)
+        backgroundHue += 0.05;
+        ctx.fillStyle = `hsl(${backgroundHue}, 50%, 80%)`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 2. Inkräktare (Inattentional Blindness) - börjar efter 3 sekunder
+        if (frameCount > 180) {
+            ctx.fillStyle = 'rgba(120, 120, 120, 0.24)'; // Opacitet 60/255 ≈ 0.24
+            ctx.fillRect(intruderX, 250, 80, 80);
+            if (intruderX < canvas.width + 200) {
+                intruderX += 1.5;
+            }
+        }
+        
+        // 3. Rita bollar
+        balls.forEach(ball => {
+            ball.update();
+            ball.draw();
+        });
+        
+        requestAnimationFrame(animate);
+    }
+
+    // Klick-hantering
+    clickButton.addEventListener('click', () => {
+        if (!testActive) return;
+        userClicks++;
+        
+        // Visuell feedback
+        clickButton.style.background = 'green';
+        setTimeout(() => {
+            clickButton.style.background = 'rgb(100, 200, 100)';
+        }, 100);
+    });
+
+    // Starta spelet
+    init();
+</script>
+</body>
+</html>
