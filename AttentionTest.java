@@ -70,14 +70,14 @@ public class AttentionTest extends JPanel implements ActionListener {
             backgroundHue += 0.0002f; 
         }
 
-        // 2. "Inkräktaren" - BÖRJAR EFTER 10 SEKUNDER
-        if (frameCount > 600) { // Ca 10 sekunder (600 frames vid 60fps)
-            g2d.setColor(new Color(150, 150, 150, 20));
-            g2d.fillRect(intruderX, 250, 60, 60);
-            if (intruderX < getWidth() + 100) {
-                intruderX += 0.5;
-            }
-        }
+        // 2. "Inkräktaren" - BÖRJAR EFTER 3 SEKUNDER
+if (frameCount > 180) { // Ca 3 sekunder (180 frames vid 60fps)
+    g2d.setColor(new Color(100, 100, 100, 80)); // Mörkare grå, högre opacitet
+    g2d.fillRect(intruderX, 250, 70, 70); // Större: 80x80
+    if (intruderX < getWidth() + 200) { // Ändrat från +100 till +200 för att åka längre
+        intruderX += 1.2; // Snabbare: 1.2 pixels/frame
+    }
+}
 
         // 3. Rita alla bollar
         for (Ball b : balls) {
@@ -118,4 +118,62 @@ public class AttentionTest extends JPanel implements ActionListener {
         // VISA INSTRUKTIONER
         JOptionPane.showMessageDialog(frame, 
             "UPPGIFT: Klicka på den gröna knappen LÄNGST NER\n" +
-            "varje gång den
+            "varje gång den GRÖNA bollen studsar mot en vägg.\n\n" +
+            "Testet tar 15 sekunder.\n\n" +
+            "Tryck OK för att börja!");
+        
+        test.timer.start();
+
+        new Timer(20000, e -> {  // 20 sekunder istället för 15
+            test.timer.stop();
+            test.clickButton.setEnabled(false);
+            
+            int diff = Math.abs(test.greenBounces - test.userClicks);
+            String accuracy = diff == 0 ? "Perfekt!" : 
+                            diff <= 2 ? "Mycket bra!" : 
+                            diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+            
+            JOptionPane.showMessageDialog(frame, 
+                "Testet klart!\n\n" +
+                "Faktiska gröna studsar: " + test.greenBounces + "\n" +
+                "Dina klick: " + test.userClicks + "\n" +
+                "Differens: " + diff + " (" + accuracy + ")\n\n" +
+                "MEN: Märkte du att...\n" +
+                "1. Bakgrunden ändrade färg från blå till rosa?\n" +
+                "2. En grå fyrkant gled långsamt genom mitten av skärmen?\n" +
+                "3. De vita bollarna förvandlades gradvis till kvadrater?");
+            System.exit(0);
+        }).start();
+    }
+
+    class Ball {
+        int x, y, dx, dy;
+        Color color;
+        boolean isTarget, hitWall = false;
+
+        Ball(int x, int y, int dx, int dy, Color c, boolean target) {
+            this.x = x; 
+            this.y = y; 
+            this.dx = dx; 
+            this.dy = dy;
+            this.color = c; 
+            this.isTarget = target;
+        }
+
+        void move(int width, int height) {
+    x += dx; 
+    y += dy;
+    
+    // Studsa mot höger/vänster vägg
+    if (x <= 0 || x >= width - 30) { 
+        dx *= -1; 
+        if(isTarget) hitWall = true; 
+    }
+    // Studsa mot tak/golv - MINUS 100 för att ge plats åt knappen
+    if (y <= 0 || y >= height - 100) { 
+        dy *= -1; 
+        if(isTarget) hitWall = true; 
+    }
+}
+}
+}
