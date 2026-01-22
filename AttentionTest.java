@@ -8,78 +8,99 @@ import java.util.Random;
 public class AttentionTest extends JPanel implements ActionListener {
     private int ballCount = 5;
     private int greenBounces = 0;
+    private int userClicks = 0; // Räkna användarens klick
     private ArrayList<Ball> balls = new ArrayList<>();
     private Timer timer;
+    private JButton clickButton;
     
-    // Variabler för de dolda elementen (förändringsblindhet)
-    private float backgroundHue = 0.6f; // Startar som blåaktig
+    // Variabler för de dolda elementen
+    private float backgroundHue = 0.6f;
     private int intruderX = -100;
 
     public AttentionTest() {
+        setLayout(new BorderLayout());
+        
         Random rand = new Random();
         
-        // Skapa bollar, varav en är grön (målet)
+        // Skapa bollar
         balls.add(new Ball(100, 100, 3, 4, Color.GREEN, true));
         
-        // Skapa de vita störningsmomenten
         for (int i = 0; i < ballCount - 1; i++) {
             balls.add(new Ball(rand.nextInt(500), rand.nextInt(400), 
                       rand.nextInt(5) + 2, rand.nextInt(5) + 2, Color.WHITE, false));
         }
 
-        // Timer för uppdatering av grafiken (ca 60 bilder per sekund)
+        // Skapa klick-knapp
+        clickButton = new JButton("Klicka vid grön studs!");
+        clickButton.setFont(new Font("Arial", Font.BOLD, 16));
+        clickButton.setFocusPainted(false);
+        clickButton.addActionListener(e -> {
+            userClicks++;
+            // Ge visuell feedback
+            clickButton.setBackground(Color.GREEN);
+            Timer flashTimer = new Timer(100, evt -> {
+                clickButton.setBackground(null);
+            });
+            flashTimer.setRepeats(false);
+            flashTimer.start();
+        });
+        
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(clickButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
         timer = new Timer(16, this);
         timer.start();
         
-        // Visa instruktioner direkt vid start
         JOptionPane.showMessageDialog(null, 
-            "UPPGIFT: Räkna hur många gånger den GRÖNA bollen studsar mot väggarna.\n" +
+            "UPPGIFT: Klicka på knappen varje gång den GRÖNA bollen studsar mot en vägg.\n" +
             "Håll fokus, testet tar ca 15 sekunder.");
     }
 
     @Override
-protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
-    Graphics2D g2d = (Graphics2D) g;
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        
+        // Aktivera antialiasing för snyggare grafik
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+                             RenderingHints.VALUE_ANTIALIAS_ON);
 
-    // 1. Ändra bakgrunden långsamt (Change Blindness)
-    setBackground(Color.getHSBColor(backgroundHue, 0.5f, 0.8f));
-    if (backgroundHue < 0.9f) {
-        backgroundHue += 0.0002f; 
-    }
+        // 1. Ändra bakgrunden långsamt
+        setBackground(Color.getHSBColor(backgroundHue, 0.5f, 0.8f));
+        if (backgroundHue < 0.9f) {
+            backgroundHue += 0.0002f; 
+        }
 
-    // 2. "Inkräktaren" (Inattentional Blindness)
-    g2d.setColor(new Color(150, 150, 150, 100)); // Semitransparent grå
-    g2d.fillRect(intruderX, 250, 80, 80);
-    if (intruderX < getWidth() + 100) {
-        intruderX += 1;
-    }
+        // 2. "Inkräktaren" - NU MER SUBTIL (lägre opacitet)
+        g2d.setColor(new Color(150, 150, 150, 30)); // Bara 30/255 opacitet (var 100)
+        g2d.fillRect(intruderX, 250, 80, 80);
+        if (intruderX < getWidth() + 100) {
+            intruderX += 1;
+        }
 
-    // 3. Rita alla bollar (Här har vi slagit ihop logiken)
-    for (Ball b : balls) {
-        g2d.setColor(b.color);
-        if (b.isTarget) {
-            // Den gröna bollen är alltid en perfekt cirkel
-            g2d.fillOval(b.x, b.y, 30, 30); 
-        } else {
-            // De vita bollarna ändras gradvis till kvadrater (Change Blindness)
-            int roundness = Math.max(0, 30 - (int)((backgroundHue - 0.6f) * 100)); 
-            g2d.fillRoundRect(b.x, b.y, 30, 30, roundness, roundness);
+        // 3. Rita alla bollar
+        for (Ball b : balls) {
+            g2d.setColor(b.color);
+            if (b.isTarget) {
+                g2d.fillOval(b.x, b.y, 30, 30); 
+            } else {
+                int roundness = Math.max(0, 30 - (int)((backgroundHue - 0.6f) * 100)); 
+                g2d.fillRoundRect(b.x, b.y, 30, 30, roundness, roundness);
+            }
         }
     }
-}
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // Uppdatera bollarnas position och kolla studsar
         for (Ball b : balls) {
             b.move(getWidth(), getHeight());
             if (b.isTarget && b.hitWall) {
                 greenBounces++;
-                b.hitWall = false; // Återställ flaggan efter räkning
+                b.hitWall = false;
             }
         }
-        repaint(); // Be systemet rita om skärmen
+        repaint();
     }
 
     public static void main(String[] args) {
@@ -89,22 +110,32 @@ protected void paintComponent(Graphics g) {
         frame.add(test);
         frame.setSize(800, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null); // Centrera fönstret
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
-        // Timer för att avsluta testet efter 15 sekunder
         new Timer(15000, e -> {
             test.timer.stop();
-            JOptionPane.showMessageDialog(frame, "Testet klart!\n\n" +
-                "Din räkning av gröna studsar: " + test.greenBounces + "\n\n" +
+            test.clickButton.setEnabled(false);
+            
+            // Beräkna noggrannhet
+            int diff = Math.abs(test.greenBounces - test.userClicks);
+            String accuracy = diff == 0 ? "Perfekt!" : 
+                            diff <= 2 ? "Mycket bra!" : 
+                            diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+            
+            JOptionPane.showMessageDialog(frame, 
+                "Testet klart!\n\n" +
+                "Faktiska gröna studsar: " + test.greenBounces + "\n" +
+                "Dina klick: " + test.userClicks + "\n" +
+                "Differens: " + diff + " (" + accuracy + ")\n\n" +
                 "MEN: Märkte du att...\n" +
                 "1. Bakgrunden ändrade färg från blå till rosa?\n" +
-                "2. En grå fyrkant gled långsamt genom mitten av skärmen?");
+                "2. En grå fyrkant gled långsamt genom mitten av skärmen?\n" +
+                "3. De vita bollarna förvandlades gradvis till kvadrater?");
             System.exit(0);
         }).start();
     }
 
-    // Inre klass för att hantera bollarnas logik
     class Ball {
         int x, y, dx, dy;
         Color color;
@@ -123,12 +154,10 @@ protected void paintComponent(Graphics g) {
             x += dx; 
             y += dy;
             
-            // Studsa mot höger/vänster vägg
             if (x <= 0 || x >= width - 30) { 
                 dx *= -1; 
                 if(isTarget) hitWall = true; 
             }
-            // Studsa mot tak/golv
             if (y <= 0 || y >= height - 30) { 
                 dy *= -1; 
                 if(isTarget) hitWall = true; 
