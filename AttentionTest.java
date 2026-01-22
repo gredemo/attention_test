@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class AttentionTest extends JPanel implements ActionListener {
-    private int ballCount = 5;
+    private int ballCount = 10; // ÖKAD från 5 till 10 bollar
     private int greenBounces = 0;
-    private int userClicks = 0; // Räkna användarens klick
+    private int userClicks = 0;
     private ArrayList<Ball> balls = new ArrayList<>();
     private Timer timer;
     private JButton clickButton;
@@ -16,46 +16,43 @@ public class AttentionTest extends JPanel implements ActionListener {
     // Variabler för de dolda elementen
     private float backgroundHue = 0.6f;
     private int intruderX = -100;
+    private int frameCount = 0; // Räknare för att fördröja fyrkanten
 
     public AttentionTest() {
-        setLayout(new BorderLayout());
-        
-        Random rand = new Random();
-        
-        // Skapa bollar
-        balls.add(new Ball(100, 100, 3, 4, Color.GREEN, true));
-        
-        for (int i = 0; i < ballCount - 1; i++) {
-            balls.add(new Ball(rand.nextInt(500), rand.nextInt(400), 
-                      rand.nextInt(5) + 2, rand.nextInt(5) + 2, Color.WHITE, false));
-        }
-
-        // Skapa klick-knapp
-        clickButton = new JButton("Klicka vid grön studs!");
-        clickButton.setFont(new Font("Arial", Font.BOLD, 16));
-        clickButton.setFocusPainted(false);
-        clickButton.addActionListener(e -> {
-            userClicks++;
-            // Ge visuell feedback
-            clickButton.setBackground(Color.GREEN);
-            Timer flashTimer = new Timer(100, evt -> {
-                clickButton.setBackground(null);
-            });
-            flashTimer.setRepeats(false);
-            flashTimer.start();
-        });
-        
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(clickButton);
-        add(buttonPanel, BorderLayout.SOUTH);
-
-        timer = new Timer(16, this);
-        timer.start();
-        
-        JOptionPane.showMessageDialog(null, 
-            "UPPGIFT: Klicka på knappen varje gång den GRÖNA bollen studsar mot en vägg.\n" +
-            "Håll fokus, testet tar ca 15 sekunder.");
+    setLayout(new BorderLayout());
+    
+    Random rand = new Random();
+    
+    // Skapa bollar
+    balls.add(new Ball(100, 100, 3, 4, Color.GREEN, true));
+    
+    for (int i = 0; i < ballCount - 1; i++) {
+        balls.add(new Ball(rand.nextInt(500), rand.nextInt(400), 
+                  rand.nextInt(5) + 2, rand.nextInt(5) + 2, Color.WHITE, false));
     }
+
+    // Skapa klick-knapp
+    clickButton = new JButton("Klicka vid grön studs!");
+    clickButton.setFont(new Font("Arial", Font.BOLD, 16));
+    clickButton.setFocusPainted(false);
+    clickButton.addActionListener(e -> {
+        userClicks++;
+        // Ge visuell feedback
+        clickButton.setBackground(Color.GREEN);
+        Timer flashTimer = new Timer(100, evt -> {
+            clickButton.setBackground(null);
+        });
+        flashTimer.setRepeats(false);
+        flashTimer.start();
+    });
+    
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.add(clickButton);
+    add(buttonPanel, BorderLayout.SOUTH);
+
+    timer = new Timer(16, this);
+    // VÄNTA MED ATT STARTA TIMER OCH VISA INSTRUKTIONER
+}
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -72,11 +69,13 @@ public class AttentionTest extends JPanel implements ActionListener {
             backgroundHue += 0.0002f; 
         }
 
-        // 2. "Inkräktaren" - NU MER SUBTIL (lägre opacitet)
-        g2d.setColor(new Color(150, 150, 150, 30)); // Bara 30/255 opacitet (var 100)
-        g2d.fillRect(intruderX, 250, 80, 80);
-        if (intruderX < getWidth() + 100) {
-            intruderX += 1;
+        // 2. "Inkräktaren" - BÖRJAR EFTER 5 SEKUNDER, MINDRE OCH LÅNGSAMMARE
+        if (frameCount > 300) { // Ca 5 sekunder (300 frames vid 60fps)
+            g2d.setColor(new Color(150, 150, 150, 20)); // Ännu lägre opacitet (20 istället för 30)
+            g2d.fillRect(intruderX, 250, 60, 60); // Mindre: 60x60 istället för 80x80
+            if (intruderX < getWidth() + 100) {
+                intruderX += 0.5; // LÅNGSAMMARE: 0.5 istället för 1 pixel per frame
+            }
         }
 
         // 3. Rita alla bollar
@@ -93,6 +92,8 @@ public class AttentionTest extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
+        frameCount++; // Räkna frames för fördröjning
+        
         for (Ball b : balls) {
             b.move(getWidth(), getHeight());
             if (b.isTarget && b.hitWall) {
@@ -104,37 +105,47 @@ public class AttentionTest extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Uppmärksamhetstest");
-        AttentionTest test = new AttentionTest();
-        
-        frame.add(test);
-        frame.setSize(800, 600);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+    JFrame frame = new JFrame("Uppmärksamhetstest");
+    AttentionTest test = new AttentionTest();
+    
+    frame.add(test);
+    frame.setSize(800, 600);
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setLocationRelativeTo(null);
+    frame.setVisible(true);
+    
+    // VISA INSTRUKTIONER EFTER ATT FÖNSTRET ÄR SYNLIGT
+    JOptionPane.showMessageDialog(frame, 
+        "UPPGIFT: Klicka på knappen längst ner varje gång\n" +
+        "den GRÖNA bollen studsar mot en vägg.\n\n" +
+        "Håll fokus, testet tar ca 15 sekunder.\n\n" +
+        "Tryck OK för att börja!");
+    
+    // STARTA TIMER EFTER ATT ANVÄNDAREN KLICKAT OK
+    test.timer.start();
 
-        new Timer(15000, e -> {
-            test.timer.stop();
-            test.clickButton.setEnabled(false);
-            
-            // Beräkna noggrannhet
-            int diff = Math.abs(test.greenBounces - test.userClicks);
-            String accuracy = diff == 0 ? "Perfekt!" : 
-                            diff <= 2 ? "Mycket bra!" : 
-                            diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
-            
-            JOptionPane.showMessageDialog(frame, 
-                "Testet klart!\n\n" +
-                "Faktiska gröna studsar: " + test.greenBounces + "\n" +
-                "Dina klick: " + test.userClicks + "\n" +
-                "Differens: " + diff + " (" + accuracy + ")\n\n" +
-                "MEN: Märkte du att...\n" +
-                "1. Bakgrunden ändrade färg från blå till rosa?\n" +
-                "2. En grå fyrkant gled långsamt genom mitten av skärmen?\n" +
-                "3. De vita bollarna förvandlades gradvis till kvadrater?");
-            System.exit(0);
-        }).start();
-    }
+    new Timer(15000, e -> {
+        test.timer.stop();
+        test.clickButton.setEnabled(false);
+        
+        // Beräkna noggrannhet
+        int diff = Math.abs(test.greenBounces - test.userClicks);
+        String accuracy = diff == 0 ? "Perfekt!" : 
+                        diff <= 2 ? "Mycket bra!" : 
+                        diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+        
+        JOptionPane.showMessageDialog(frame, 
+            "Testet klart!\n\n" +
+            "Faktiska gröna studsar: " + test.greenBounces + "\n" +
+            "Dina klick: " + test.userClicks + "\n" +
+            "Differens: " + diff + " (" + accuracy + ")\n\n" +
+            "MEN: Märkte du att...\n" +
+            "1. Bakgrunden ändrade färg från blå till rosa?\n" +
+            "2. En grå fyrkant gled långsamt genom mitten av skärmen?\n" +
+            "3. De vita bollarna förvandlades gradvis till kvadrater?");
+        System.exit(0);
+    }).start();
+}
 
     class Ball {
         int x, y, dx, dy;
