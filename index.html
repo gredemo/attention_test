@@ -50,10 +50,10 @@
     canvas.width = 800;
     canvas.height = 600;
     
-    let ballCount = 7; // 1 grön + 6 vita
+    let ballCount = 7;
     let greenBounces = 0;
     let userClicks = 0;
-    let backgroundHue = 210; // Startar på blått
+    let backgroundHue = 210;
     let intruderX = -100;
     let frameCount = 0;
     let balls = [];
@@ -74,7 +74,6 @@
             this.x += this.dx;
             this.y += this.dy;
             
-            // Studsa mot väggar
             if (this.x - this.radius <= 0 || this.x + this.radius >= canvas.width) {
                 this.dx *= -1;
                 if (this.isTarget) greenBounces++;
@@ -90,10 +89,8 @@
             ctx.beginPath();
             
             if (this.isTarget) {
-                // Grön boll - alltid cirkel
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             } else {
-                // Vita bollar - blir gradvis fyrkantiga (Change Blindness)
                 let progress = Math.min(1, (backgroundHue - 210) / 90);
                 
                 if (progress < 0.3) {
@@ -123,7 +120,6 @@
     }
 
     function init() {
-        // Skapa bollar - 1 grön + 6 vita
         balls.push(new Ball(100, 100, 3, 4, 'green', true));
         
         for (let i = 0; i < ballCount - 1; i++) {
@@ -145,44 +141,158 @@
     }
 
     function finishTest() {
-    testActive = false;
-    clickButton.disabled = true;
-    clickButton.style.opacity = 0.5;
-    
-    let diff = Math.abs(greenBounces - userClicks);
-    let accuracy = diff === 0 ? "Perfekt!" : 
-                  diff <= 2 ? "Mycket bra!" : 
-                  diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
-    
-    alert(`Testet klart!\n\nFaktiska gröna studsar: ${greenBounces}\nDina klick: ${userClicks}\nDifferens: ${diff} (${accuracy})\n\nMEN: Märkte du att...\n1. Bakgrunden ändrade färg från blå till rosa?\n2. En grå fyrkant gled långsamt genom mitten av skärmen?\n3. De vita bollarna förvandlades gradvis till kvadrater?`);
-    
-    // Lägg till omstart-knapp
-    clickButton.textContent = "TESTA IGEN";
-    clickButton.disabled = false;
-    clickButton.style.opacity = 1;
-    clickButton.onclick = () => location.reload();
-}
+        testActive = false;
+        clickButton.disabled = true;
+        clickButton.style.opacity = 0.5;
+        
+        let diff = Math.abs(greenBounces - userClicks);
+        let accuracy = diff === 0 ? "Perfekt!" : 
+                      diff <= 2 ? "Mycket bra!" : 
+                      diff <= 5 ? "Ganska bra" : "Svårt att hänga med!";
+        
+        alert(`Testet klart!\n\nFaktiska gröna studsar: ${greenBounces}\nDina klick: ${userClicks}\nDifferens: ${diff} (${accuracy})`);
+        
+        // Skapa overlay för quiz
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        `;
+        
+        const quizBox = document.createElement('div');
+        quizBox.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        `;
+        
+        quizBox.innerHTML = `
+            <h2 style="margin-top: 0;">Vilka förändringar såg du?</h2>
+            <p style="color: #666;">Kryssa i alla påståenden som är SANNA:</p>
+            <div style="text-align: left; margin: 20px 0;">
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q1" value="true"> Bakgrunden var blå från början
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q2" value="false"> Bakgrunden var rosa från början
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q3" value="true"> Bakgrunden ändrade färg under testet
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q4" value="true"> Det fanns vita bollar från början
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q5" value="false"> Det fanns gula bollar
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q6" value="true"> En grå fyrkant gled över skärmen
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q7" value="false"> En röd cirkel gled över skärmen
+                </label>
+                <label style="display: block; margin: 10px 0; cursor: pointer;">
+                    <input type="checkbox" id="q8" value="true"> De vita bollarna blev gradvis fyrkantiga
+                </label>
+            </div>
+            <button id="submitQuiz" style="
+                padding: 12px 30px;
+                font-size: 16px;
+                font-weight: bold;
+                background: rgb(100, 200, 100);
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                width: 100%;
+            ">Visa resultat</button>
+        `;
+        
+        overlay.appendChild(quizBox);
+        document.body.appendChild(overlay);
+        
+        document.getElementById('submitQuiz').addEventListener('click', () => {
+            let correct = 0;
+            let total = 0;
+            
+            const answers = [
+                {id: 'q1', correct: true},
+                {id: 'q2', correct: false},
+                {id: 'q3', correct: true},
+                {id: 'q4', correct: true},
+                {id: 'q5', correct: false},
+                {id: 'q6', correct: true},
+                {id: 'q7', correct: false},
+                {id: 'q8', correct: true}
+            ];
+            
+            answers.forEach(answer => {
+                const checkbox = document.getElementById(answer.id);
+                const label = checkbox.parentElement;
+                total++;
+                
+                if (checkbox.checked === answer.correct) {
+                    correct++;
+                    label.style.color = 'green';
+                    label.style.fontWeight = 'bold';
+                } else {
+                    label.style.color = 'red';
+                    label.style.textDecoration = 'line-through';
+                }
+            });
+            
+            const resultText = document.createElement('p');
+            resultText.style.cssText = 'font-size: 18px; font-weight: bold; margin-top: 20px;';
+            resultText.textContent = `Du fick ${correct} av ${total} rätt!`;
+            
+            if (correct === total) {
+                resultText.textContent += ' Perfekt! 🎉';
+                resultText.style.color = 'green';
+            } else if (correct >= total * 0.75) {
+                resultText.textContent += ' Mycket bra! 👍';
+                resultText.style.color = 'darkgreen';
+            } else if (correct >= total * 0.5) {
+                resultText.textContent += ' Ganska bra!';
+                resultText.style.color = 'orange';
+            } else {
+                resultText.textContent += ' Svårt att se allt!';
+                resultText.style.color = 'red';
+            }
+            
+            quizBox.appendChild(resultText);
+            
+            const submitBtn = document.getElementById('submitQuiz');
+            submitBtn.textContent = 'TESTA IGEN';
+            submitBtn.onclick = () => location.reload();
+        });
+    }
 
     function animate() {
         if (!testActive) return;
         
         frameCount++;
         
-        // 1. Bakgrund (Change Blindness - från blå till rosa)
         backgroundHue += 0.05;
         ctx.fillStyle = `hsl(${backgroundHue}, 50%, 80%)`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // 2. Inkräktare (Inattentional Blindness) - börjar efter 3 sekunder
         if (frameCount > 180) {
-            ctx.fillStyle = 'rgba(120, 120, 120, 0.24)'; // Opacitet 60/255 ≈ 0.24
+            ctx.fillStyle = 'rgba(120, 120, 120, 0.24)';
             ctx.fillRect(intruderX, 250, 80, 80);
             if (intruderX < canvas.width + 200) {
                 intruderX += 1.5;
             }
         }
         
-        // 3. Rita bollar
         balls.forEach(ball => {
             ball.update();
             ball.draw();
@@ -191,19 +301,16 @@
         requestAnimationFrame(animate);
     }
 
-    // Klick-hantering
     clickButton.addEventListener('click', () => {
         if (!testActive) return;
         userClicks++;
         
-        // Visuell feedback
         clickButton.style.background = 'green';
         setTimeout(() => {
             clickButton.style.background = 'rgb(100, 200, 100)';
         }, 100);
     });
 
-    // Starta spelet
     init();
 </script>
 </body>
